@@ -1,6 +1,10 @@
 from decouple import config
 import requests
 from time import sleep
+import json
+import sys
+import hashlib
+import random
 
 
 def room_init():
@@ -29,9 +33,6 @@ def route(route_dict):
         print(f'Moved {value} to room number {key}')
 
 # route({
-#     "26":"w",
-#     "23":"w",
-#     "4":"s",
 #     "0":"w",
 #     "10":"n",
 #     "19":"n",
@@ -431,4 +432,59 @@ def receive(name):
     # sleep to prevent PEBCAK
     sleep(cd+1)
     # return JSON
+    return ret_data
+
+def mine():
+    # get last valid proof
+    url = 'https://lambda-treasure-hunt.herokuapp.com/api/bc/last_proof/'
+    token = config('TOKEN')
+    headers = {'Authorization': f'Token {token}'}
+    r = requests.get(url, headers=headers)
+    ret_data = r.json()
+    cd = ret_data['cooldown']
+    sleep(cd+1)
+    last_proof = ret_data['proof']
+    print(f'last_proof: {last_proof}')
+    # last_proof = json.dumps(last_proof, sort_keys=True).encode()
+    proof = random.randint(0, 50000)
+    addZeroes = ret_data['difficulty']
+    print(f'diff: {addZeroes}')
+    hashZeroes = "0" * addZeroes
+    # last_proof = f'{last_proof}'.encode()
+    while valid_proof(last_proof, proof, addZeroes, hashZeroes) is False:
+        proof += 1
+    #proof = str(proof)
+    url = 'https://lambda-treasure-hunt.herokuapp.com/api/bc/last_proof/'
+    headers = {'Authorization': f'Token {token}'}
+    r = requests.get(url, headers=headers)
+    ret_data = r.json()
+    cd = ret_data['cooldown']
+    sleep(cd+1)
+    curr_val_proof = ret_data['proof']
+    print(f"current valid_proof: {curr_val_proof}")
+    url = 'https://lambda-treasure-hunt.herokuapp.com/api/bc/mine/'
+    headers = {"Content-Type": "application/json",
+               'Authorization': f'Token {token}'}
+    data = {"proof": proof}
+    print(f'proof: {proof}, ')
+    r = requests.post(url, headers=headers, json=data)
+    ret_data = r.json()
+    cd = ret_data['cooldown']
+    sleep(cd+1)
+    return ret_data
+    
+def valid_proof(last_proof, proof, addZeroes, hashZeroes):
+    guess = f'{last_proof}{proof}'.encode()
+    guess_hash = hashlib.sha256(guess).hexdigest()
+    # print(f'guess_hash: {guess_hash}')
+    if(guess_hash[:addZeroes] == hashZeroes):
+        print(f'guess: {guess_hash}')
+    return guess_hash[:addZeroes] == hashZeroes
+
+def get_balance():
+    url = 'https://lambda-treasure-hunt.herokuapp.com/api/bc/get_balance/'
+    token = config('TOKEN')
+    headers = {'Authorization': f'Token {token}'}
+    r = requests.get(url, headers=headers)
+    ret_data = r.json()
     return ret_data
