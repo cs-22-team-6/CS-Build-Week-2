@@ -1,5 +1,11 @@
-from decouple import config
 import requests
+import json
+import sys
+import hashlib
+import random
+
+from decouple import config
+
 from time import sleep
 
 
@@ -21,6 +27,7 @@ def room_init():
     # return JSON
     return ret_data
 
+
 def move_north(direction):
     """
     Simple move function
@@ -40,6 +47,7 @@ def move_north(direction):
     sleep(cd+1)
     # return JSON
     return ret_data
+
 
 def move_south():
     """
@@ -61,6 +69,7 @@ def move_south():
     # return JSON
     return ret_data
 
+
 def move_east():
     """
     Simple move function
@@ -80,6 +89,7 @@ def move_east():
     sleep(cd+1)
     # return JSON
     return ret_data
+
 
 def move_west():
     """
@@ -101,6 +111,7 @@ def move_west():
     # return JSON
     return ret_data
 
+
 def move(direction):
     """
     Refactored move function
@@ -120,6 +131,7 @@ def move(direction):
     sleep(cd+1)
     # return JSON
     return ret_data
+
 
 def wise_move(direction, room):
     """
@@ -142,6 +154,7 @@ def wise_move(direction, room):
     # return JSON
     return ret_data
 
+
 def fly(direction):
     """
     Fly Function. Needs power
@@ -162,6 +175,7 @@ def fly(direction):
     # return JSON
     return ret_data
 
+
 def dash(direction, room_list):
     """
     Dash function. Needs power
@@ -177,7 +191,8 @@ def dash(direction, room_list):
     token = config('TOKEN')
     headers = {"Content-Type": "application/json",
                'Authorization': f'Token {token}'}
-    data = '{"direction":"'+direction+'", "num_rooms":"'+n_rooms+'", "next_room_ids": "'+rooms+'"}'
+    data = '{"direction":"'+direction+'", "num_rooms":"' + \
+        n_rooms+'", "next_room_ids": "'+rooms+'"}'
     r = requests.post(url, headers=headers, data=data)
     # get return data
     ret_data = r.json()
@@ -187,6 +202,7 @@ def dash(direction, room_list):
     sleep(cd+1)
     # return JSON
     return ret_data
+
 
 def take_item(item):
     """
@@ -208,6 +224,7 @@ def take_item(item):
     # return JSON
     return ret_data
 
+
 def drop_treasure(item):
     """
     Drop item
@@ -228,6 +245,7 @@ def drop_treasure(item):
     # return JSON
     return ret_data
 
+
 def get_player_status():
     """
     gets player attributes and inventory
@@ -245,7 +263,8 @@ def get_player_status():
     # sleep to prevent PEBCAK
     sleep(cd+1)
     # return JSON
-    return ret_data  
+    return ret_data
+
 
 def equip(name):
     """
@@ -267,6 +286,7 @@ def equip(name):
     # return JSON
     return ret_data
 
+
 def unequip(name):
     """
     NEED TO TEST
@@ -286,6 +306,7 @@ def unequip(name):
     sleep(cd+1)
     # return JSON
     return ret_data
+
 
 def examine(name):
     """
@@ -307,6 +328,7 @@ def examine(name):
     # return JSON
     return ret_data
 
+
 def sell_treasure(treasure):
     """
     Sell tresure at the shop
@@ -327,6 +349,7 @@ def sell_treasure(treasure):
     # return JSON
     return ret_data
 
+
 def pray():
     """
     pray at a shrine
@@ -346,6 +369,7 @@ def pray():
     # return JSON
     return ret_data
 
+
 def change_name(name):
     """
     Change player name. Must be at special shrine
@@ -355,7 +379,7 @@ def change_name(name):
     token = config('TOKEN')
     headers = {"Content-Type": "application/json",
                'Authorization': f'Token {token}'}
-    data = '{"name":"'+name+'"}'
+    data = '{"name":"'+name+'", "confirm": "aye"}'
     r = requests.post(url, headers=headers, data=data)
     # get return data
     ret_data = r.json()
@@ -365,6 +389,7 @@ def change_name(name):
     sleep(cd+1)
     # return JSON
     return ret_data
+
 
 def carry(name):
     """
@@ -386,6 +411,7 @@ def carry(name):
     # return JSON
     return ret_data
 
+
 def receive(name):
     """
     NEED TO TEST
@@ -405,3 +431,81 @@ def receive(name):
     sleep(cd+1)
     # return JSON
     return ret_data
+
+
+def get_balance():
+    url = 'https://lambda-treasure-hunt.herokuapp.com/api/bc/get_balance/'
+    token = config('TOKEN')
+    headers = {'Authorization': f'Token {token}'}
+    r = requests.get(url, headers=headers)
+    ret_data = r.json()
+    return ret_data
+
+
+def mine():
+    # get last valid proof
+    url = 'https://lambda-treasure-hunt.herokuapp.com/api/bc/last_proof/'
+    token = config('TOKEN')
+    headers = {'Authorization': f'Token {token}'}
+    r = requests.get(url, headers=headers)
+    ret_data = r.json()
+    cd = ret_data['cooldown']
+    sleep(cd+1)
+
+    last_proof = ret_data['proof']
+    print(f'last_proof: {last_proof}')
+    # last_proof = json.dumps(last_proof, sort_keys=True).encode()
+    proof = random.randint(0, 50000)
+    addZeroes = ret_data['difficulty']
+    print(f'diff: {addZeroes}')
+    hashZeroes = "0" * addZeroes
+    # last_proof = f'{last_proof}'.encode()
+    while valid_proof(last_proof, proof, addZeroes, hashZeroes) is False:
+        proof += 1
+
+    #proof = str(proof)
+
+    url = 'https://lambda-treasure-hunt.herokuapp.com/api/bc/last_proof/'
+    headers = {'Authorization': f'Token {token}'}
+    r = requests.get(url, headers=headers)
+    ret_data = r.json()
+    cd = ret_data['cooldown']
+    sleep(cd+1)
+    curr_val_proof = ret_data['proof']
+
+    print(f"current valid_proof: {curr_val_proof}")
+
+    url = 'https://lambda-treasure-hunt.herokuapp.com/api/bc/mine/'
+    headers = {"Content-Type": "application/json",
+               'Authorization': f'Token {token}'}
+    data = {"proof": proof}
+    print(f'proof: {proof}, ')
+
+    r = requests.post(url, headers=headers, json=data)
+    ret_data = r.json()
+    cd = ret_data['cooldown']
+    sleep(cd+1)
+    return ret_data
+
+
+def valid_proof(last_proof, proof, addZeroes, hashZeroes):
+    guess = f'{last_proof}{proof}'.encode()
+    guess_hash = hashlib.sha256(guess).hexdigest()
+    # print(f'guess_hash: {guess_hash}')
+    if(guess_hash[:addZeroes] == hashZeroes):
+        print(f'guess: {guess_hash}')
+
+    return guess_hash[:addZeroes] == hashZeroes
+
+
+def route(route_dict):
+    for key, value in route_dict.items():
+        key = str(key)
+        value = str(value)
+        new_room = wise_move(value, key)
+#         if new_room['room_id'] != key:
+#             print('Error')
+#             break
+#         else:
+#             print(f'Moved {value} to room number {key}')
+        print(new_room['messages'])
