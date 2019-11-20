@@ -21,6 +21,33 @@ def room_init():
     # return JSON
     return ret_data
 
+def route(route_dict):
+    for key, value in route_dict.items():
+        key = str(key)
+        value = str(value)
+        wise_move(value, key)
+        print(f'Moved {value} to room number {key}')
+
+# route({
+#     "26":"w",
+#     "23":"w",
+#     "4":"s",
+#     "0":"w",
+#     "10":"n",
+#     "19":"n",
+#     "20":"n",
+#     "27":"e",
+#     "30":"e",
+#     "32":"e",
+#     "39":"n",
+#     "53":"n",
+#     "88":"w",
+#     "122":"w",
+#     "124":"n",
+#     "157":"n",
+#     "182":"w",
+# })
+
 def move_north(direction):
     """
     Simple move function
@@ -355,7 +382,7 @@ def change_name(name):
     token = config('TOKEN')
     headers = {"Content-Type": "application/json",
                'Authorization': f'Token {token}'}
-    data = '{"name":"'+name+'"}'
+    data = '{"name":"'+name+'","confirm": "aye"}'
     r = requests.post(url, headers=headers, data=data)
     # get return data
     ret_data = r.json()
